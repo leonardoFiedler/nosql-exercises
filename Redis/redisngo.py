@@ -8,9 +8,9 @@ def get_numbers_list():
 
 def generate_random_cartela_values(cartela_key):
     numbers = get_numbers_list()
-    r.sadd("numbers", numbers)
+    r.sadd("numbers", " ".join(map(str, numbers)))
     generated_cartela = r.srandmember("numbers", number=15)
-    
+    print(generated_cartela)
     
 
 '''
@@ -32,7 +32,7 @@ def generate_cards(N=50):
         r.hset(name, "bcartela", cartela_name)
         r.hset(name, "bscore", score_name)
 
-        generate_random_cartela_values(cartela_key)
+        generate_random_cartela_values(cartela_name)
 
 
 if __name__ == "__main__":
