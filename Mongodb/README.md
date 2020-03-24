@@ -82,7 +82,7 @@ db.italians.count({age: {"$gt": 60} , "cat" : {"$exists": true} })
 
 ### Liste/Conte todos os jovens com cachorro
 
- db.italians.count({age: {"$gte": 12, "$lte": 18}, dog : {"$exists": true}})
+db.italians.count({age: {"$gte": 12, "$lte": 18}, dog : {"$exists": true}})
 
 ### Utilizando o $where, liste todas as pessoas que tem gato e cachorro
 
@@ -130,11 +130,139 @@ db.italians.remove({$and: [{"age": 66}, {"cat": {"$exists": true}}]})
 
 ### Utilizando o framework agregate, liste apenas as pessoas com nomes iguais a sua respectiva mãe e que tenha gato ou cachorro.
 
-
+db.italians.aggregate([
+    {$match:
+            {$or: [
+                {cat: { $exists: 1 }}, 
+                {dog: {  $exists: 1 }} 
+            ]}
+    },
+    {'$match': { mother: { $exists: 1} }}, 
+    {
+        '$project': {
+            "cat": 1,
+            "dog": 1,
+            "firstname": 1,
+            "mother": 1,
+            "isEqual": { "$cmp": ["$firstname","$mother.firstname"]}
+        }
+    },
+    {'$match': { "isEqual": 0 }}
+])
 
 ### Utilizando aggregate framework, faça uma lista de nomes única de nomes. Faça isso usando apenas o primeiro nome
 
+db.italians.aggregate([
+    {$group: {
+        _id: "$firstname"
+    }},
+    {
+        '$project': {
+            "firstname": 1
+        }
+    }
+])
+
 ### Agora faça a mesma lista do item acima, considerando nome completo.
+
+db.italians.aggregate([
+    {$group: {
+        _id: {firstname: "$firstname", surname: "$surname"}
+    }},
+    {
+        '$project': {
+            "firstname": 1,
+            "surname": 1
+        }
+    }
+])
 
 ### Procure pessoas que gosta de Banana ou Maçã, tenham cachorro ou gato, mais de 20 e menos de 60 anos.
 
+db.italians.find({
+    $and: [
+        {age: {"$gt": 20, "$lt": 60}},
+        {$or:[
+            { dog : {"$exists": 1} },
+            { cat : {"$exists": 1} }
+        ]},
+        {favFruits: {$exists: 1 }},
+        {favFruits: {$in: ["Banana", "Maçã"] }}
+    ]
+})
+
+## Exercise 3 - Stockbrokers
+
+### Liste as ações com profit acima de 0.5 (limite a 10 o resultado)
+
+db.stocks.find({
+    "Profit Margin" : {$gt: 0.5}
+}).limit(10)
+
+### Liste as ações com perdas (limite a 10 novamente)
+
+db.stocks.find({
+    "Profit Margin" : {$lt: 0}
+}).limit(10)
+
+### Liste as 10 ações mais rentáveis
+
+db.stocks.find({}).sort({"Profit Margin" : -1}).limit(10)
+
+### Qual foi o setor mais rentável?
+
+db.stocks.aggregate([
+    {"$group": { _id: "$Sector" , total: {$sum: "$Profit Margin" }}},
+    {$sort: { total: -1 }}
+])
+
+### Ordene as ações pelo profit e usando um cursor, liste as ações.
+
+var cursor = db.stocks.find({
+    "Profit Margin" : {$lt: 0}
+}).limit(10)
+
+cursor.forEach(function(x) {
+    print(x.Sector, x["Profit Margin"])
+})
+
+### Renomeie o campo “Profit Margin” para apenas “profit”.
+
+db.stocks.update({}, {$rename: {"Profit Margin": "profit"}}, false, true)
+
+### Agora liste apenas a empresa e seu respectivo resultado
+
+db.stocks.find({}, {"Company": 1, "profit": 1})
+
+### Analise as ações. É uma bola de cristal na sua mão... Quais as três ações você investiria?
+
+db.stocks.find({}, {"Company": 1, "profit": 1}).sort({profit: -1})
+
+{ "_id" : ObjectId("52853801bb1177ca391c1af3"), "Company" : "BP Prudhoe Bay Royalty Trust", "profit" : 0.994 }
+
+{ "_id" : ObjectId("52853802bb1177ca391c1b69"), "Company" : "Cascade Bancorp", "profit" : 0.994 }
+
+{ "_id" : ObjectId("5285380bbb1177ca391c2c3c"), "Company" : "Pacific Coast Oil Trust", "profit" : 0.99 }
+
+### Liste as ações agrupadas por setor
+
+db.stocks.aggregate([
+    {"$group": { _id: "$Sector"}}
+])
+
+## Exercício 3.1 - Fraude na Enron
+
+### Liste as pessoas que enviaram e-mails (de forma distinta, ou seja, sem repetir). Quantas pessoas são?
+
+db.stocks.aggregate([
+    {"$group": { _id: "$sender"}}
+])
+
+### Contabilize quantos e-mails tem a palavra “fraud”
+
+db.stocks.count({
+    $or: [
+        { text: {$regex: /fraud/, $options: 'i'} },
+        { subject: {$regex: /fraud/, $options: 'i'} },
+    ]
+})
