@@ -200,11 +200,232 @@ MATCH (p:Person)-[:ACTED_IN]->(m:Movie) WITH p, collect(m.title) as movieList ,c
 
 ## Exercise 7
 
-### 
+### Collect and use lists
 
+MATCH (p:Person)-[:ACTED_IN]->(m:Movie), (m)<-[:PRODUCED]-(p1:Person)
+WITH m, collect(DISTINCT p.name) as actorNames, collect(DISTINCT p1.name) AS producers
+RETURN DISTINCT m.title, actorNames, producers
+ORDER BY size(actorNames)
 
+### Collect a list
 
+MATCH (p:Person)-[:ACTED_IN]->(m:Movie)
+WITH p, collect(m) as movies
+WHERE size(movies) > 5
+RETURN p.name, movies
 
+### Unwind a list
 
+MATCH (p:Person)-[:ACTED_IN]->(m:Movie)
+WITH p, collect(m) as movies
+WHERE size(movies) > 5
+WITH p, movies UNWIND movies AS movie
+RETURN p.name, movie.title
 
+### Perform a calculation with the date type
 
+MATCH (m:Movie)-[:ACTED_IN]-(p:Person {name: 'Tom Hanks'}) 
+RETURN m.title, m.released, p.born, 2020 - m.released, m.released - p.born
+
+MATCH (m:Movie)-[:ACTED_IN]-(p:Person {name: 'Tom Hanks'}) 
+RETURN m.title, m.released, p.born, date().year - m.released, m.released - p.born
+
+## Exercise 8
+
+### Create a Movie node
+
+CREATE(:Movie {title: 'Forrest Gump'})
+
+### Retrieve the newly-created node
+
+MATCH (m: Movie) WHERE m.title = 'Forrest Gump' RETURN m
+
+### Create a Person node
+
+CREATE (:Person {name: 'Robin Wright'})
+
+### Retrieve the Person node you just created by its name
+
+MATCH (p: Person) WHERE p.name = 'Robin Wright' RETURN p
+
+### Add a label to a node
+
+MATCH (m: Movie) WHERE m.released < 2010
+SET m:OlderMovie
+RETURN DISTINCT labels(m)
+
+### Retrieve the node using the new label
+
+MATCH (m:OlderMovie) RETURN m.title, m.released
+
+### Add the Female label to selected nodes
+
+MATCH (p: Person) WHERE p.name STARTS WITH 'Robin'
+SET p:Female
+RETURN DISTINCT labels(p)
+
+### Retrieve all Female nodes
+
+MATCH (p: Female) RETURN p.name 
+
+### Remove the Female label from the nodes that have this label
+
+MATCH (p: Female) REMOVE p:Female
+
+### View the current schema of the graph
+
+CALL db.schema.visualization()
+
+### Add properties to a movie
+
+MATCH (m: Movie)
+WHERE m.title = 'Forrest Gump'
+SET m.released = 1994,
+    m.tagline = "m.lengthInMinutes = 142",
+    m.lengthInMinutes = 142,
+    m:OlderMovie
+
+### Retrieve an OlderMovie node to confirm the label and properties
+
+MATCH (m:OlderMovie) WHERE m.title = 'Forrest Gump' RETURN m
+
+### Add properties to the person, Robin Wright
+
+MATCH (p: Person) WHERE p.name = 'Robin Wright'
+SET p.born = 1996,
+    p.birthPlace = 'Dallas'
+
+### Retrieve an updated Person node 
+
+MATCH (p: Person) WHERE p.name = 'Robin Wright' RETURN p
+
+### Remove a property from a Movie node
+
+MATCH (m: Movie) WHERE m.title = 'Forrest Gump' SET m.lengthInMinutes = null
+
+### Retrieve the node to confirm that the property has been removed
+
+MATCH (m: Movie) WHERE m.title = 'Forrest Gump' RETURN m
+
+### Remove a property from a Person node
+
+MATCH (p: Person) WHERE p.name = 'Robin Wright' SET p.birthPlace = null
+
+### Retrieve the node to confirm that the property has been removed
+
+MATCH (p: Person) WHERE p.name = 'Robin Wright' RETURN p
+
+## Exercise 9
+
+### Create ACTED_IN relationships
+
+MATCH (m: Movie) WHERE m.title = 'Forrest Gump'
+MATCH (p: Person)
+WHERE p.name = 'Tom Hanks' or p.name = 'Robin Wright' or p.name = 'Gary Sinise'
+CREATE (p)-[:ACTED_IN]->(m)
+
+### Create DIRECTED relationships
+
+MATCH (m: Movie) WHERE m.title = 'Forrest Gump'
+MATCH (p: Person)
+WHERE p.name = 'Robert Zemeckis'
+CREATE (p)-[:DIRECTED]->(m)
+
+### Create a HELPED relationship
+
+MATCH (p: Person) WHERE p.name = 'Tom Hanks'
+MATCH (p1: Person) WHERE p1.name = 'Gary Sinise'
+CREATE (p)-[:HELPED]->(p1)
+
+### Query nodes and new relationships
+
+MATCH (p: Person)-[rel]-(m: Movie)
+WHERE m.title = 'Forrest Gump'
+RETURN p, rel, m
+
+### Add properties to relationships
+
+MATCH (p: Person)-[rel: ACTED_IN]->(m: Movie)
+WHERE m.title = 'Forrest Gump'
+SET rel.roles =
+CASE p.name
+    WHEN 'Tom Hanks' THEN ['FORREST GUMP']
+    WHEN 'Robin Wright' THEN ['Jenny Curran']
+    WHEN 'Gary Sinise' THEN ['Lieutenant Dan Taylor']
+END
+
+### Add a property to the HELPED relationship
+
+MATCH (p: Person)-[rel:HELPED]->(p1: Person)
+WHERE p.name = 'Tom Hanks' AND p1.name = 'Gary Sinise'
+SET rel.research = 'war history'
+
+###  View the current list of property keys in the graph 
+
+CALL db.propertyKeys()
+
+### View the current schema of the graph
+
+CALL db.schema.visualization()
+
+### Retrieve the names and roles for actors
+
+MATCH (p: Person)-[rel:ACTED_IN]->(m: Movie)
+WHERE m.title = 'Forrest Gump'
+RETURN p.name, rel.roles
+
+### Retrieve information about any specific relationships 
+
+MATCH (p: Person)-[rel:HELPED]->(p1: Person)
+RETURN p.name, rel, p1.name
+
+### Modify a property of a relationship
+
+MATCH (p: Person)-[rel:ACTED_IN]->(m: Movie)
+WHERE m.title = 'Forrest Gump' AND p.name = 'Gary Sinise'
+SET rel.roles = ['Lt. Dan Taylor']
+
+### Remove a property from a relationship
+
+MATCH (p: Person)-[rel:HELPED]->(p1: Person)
+WHERE p.name = 'Tom Hanks' AND p1.name = 'Gary Sinise'
+REMOVE rel.research
+
+### Confirm that your modifications were made to the graph 
+
+MATCH (p: Person)-[rel:ACTED_IN]->(m: Movie)
+WHERE m.title = 'Forrest Gump'
+RETURN p, rel, m
+
+## Exercise 10
+
+### Delete a relationship
+
+MATCH (p: Person)-[rel:HELPED]->(p1: Person) DELETE rel
+
+### Confirm that the relationship has been deleted 
+
+MATCH (p: Person)-[rel:HELPED]->(p1: Person)
+RETURN rel
+
+### Retrieve a movie and all of its relationships
+
+MATCH (p: Person)-[rel]->(m: Movie)
+WHERE m.title = 'Forrest Gump'
+RETURN p, rel, m
+
+### Try deleting a node without detaching its relationships 
+
+MATCH (m: Movie)
+WHERE m.title = 'Forrest Gump'
+DELETE m
+
+### Delete a Movie node, along with its relationships 
+
+MATCH (m: Movie)
+WHERE m.title = 'Forrest Gump'
+DETACH DELETE m
+
+### Confirm that the Movie node has been deleted 
+
+MATCH (m: Movie) WHERE m.title = 'Forrest Gump' RETURN m
