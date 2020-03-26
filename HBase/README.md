@@ -8,39 +8,39 @@
 
 ### Pull HBase image
 
-<docker pull dajobe/hbase>
+    docker pull dajobe/hbase
 
 ### Start with name hbase-furb
 
-<docker run --name hbase-furb dajobe/hbase>
+    docker run --name hbase-furb dajobe/hbase
 
 ### Use other terminal to access the VM
 
-<docker exec -it hbase-furb /bin/bash>
+    docker exec -it hbase-furb /bin/bash
 
 ### To access the SSH
 
-<hbase shell>
+    hbase shell
 
 ## Exercise - Aquecendo com alguns dados
 
 ### Copying italians.txt to Docker
 
-<docker cp italians.txt hbase-furb:/tmp>
+    docker cp italians.txt hbase-furb:/tmp
 
 ### Create table with 2 column families - personal-data and professional-data
 
 ### Create namespace
 
-create_namespace 'italians_ns'
+    create_namespace 'italians_ns'
 
 ### Create table
 
-create 'italians', 'personal-data', 'professional-data'
+    create 'italians', 'personal-data', 'professional-data'
 
 ### Import file italians.txt from command line
 
-hbase shell /tmp/italians.txt
+    hbase shell /tmp/italians.txt
 
 ## Exercise 2 (Portugues only)
 
@@ -92,13 +92,8 @@ hbase shell /tmp/italians.txt
 
 ### Crie um contador de idade 55 para o italiano de row id 5
 
-<incr 'italians', '5', 'personal-data:age', 55>
+    incr 'italians', '5', 'personal-data:age', 55
 
 ### Incremente a idade do italiano em 1
 
-<incr 'italians', '5', 'personal-data:age'>
-
-
-
-
-
+    incr 'italians', '5', 'personal-data:age'
